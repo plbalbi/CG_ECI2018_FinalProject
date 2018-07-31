@@ -24,3 +24,7 @@
 #include <DXUT.h>
 #include <DirectXCollision.h>
 #include <DirectXMesh.h>
+
+// DXUTCompileFromFile, for HLSL shader compilation
+#include "DXUTgui.h"
+#include "SDKmisc.h"
