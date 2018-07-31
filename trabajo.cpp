@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#include <iostream>
 
 #include "BasicShaders.ps.h"
 #include "BasicShaders.vs.h"
@@ -113,9 +114,33 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
   };
+
+  DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#ifdef _DEBUG
+  // Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+  // Setting this flag improves the shader debugging experience, but still allows 
+  // the shaders to be optimized and to run exactly the way they will run in 
+  // the release configuration of this program.
+  dwShaderFlags |= D3DCOMPILE_DEBUG;
+
+  // Disable optimizations to further improve shader debugging
+  dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+  // Compile the pixel shader
+  ID3DBlob* pPixelShaderBlob = nullptr;
+  V_RETURN( DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "ps_main", "ps_4_0", dwShaderFlags, 0, &pPixelShaderBlob) );
+
+  // Create the pixel shader
+  hr = pd3dDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(), pPixelShaderBlob->GetBufferSize(), nullptr, &BasicPS);
+  if (FAILED(hr))
+  {
+	  SAFE_RELEASE(pPixelShaderBlob);
+	  return hr;
+  }
+
   V_RETURN(pd3dDevice->CreateInputLayout(inputElementDescs, _countof(inputElementDescs), g_vs_main, sizeof(g_vs_main), &InputLayout));
   V_RETURN(pd3dDevice->CreateVertexShader(g_vs_main, sizeof(g_vs_main), nullptr, &BasicVS));
-  V_RETURN(pd3dDevice->CreatePixelShader(g_ps_main, sizeof(g_ps_main), nullptr, &BasicPS));
 
   return hr;
 }
@@ -133,7 +158,7 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
   RenderData *pRender = &g_RenderData;
   ID3D11RenderTargetView *rtv = DXUTGetD3D11RenderTargetView();
 
-  pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::DarkSlateBlue);
+  pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::Coral);
 
   RECT r = DXUTGetWindowClientRect();
   pRender->RotationY = (float)DXUTGetTime();
@@ -171,6 +196,7 @@ int main()
 {
   try {
     AtlCheck(DXUTInit());
+	std::cout << "D3D has been initiated correctly" << std::endl;
     AtlCheck(DXUTCreateWindow(L"Trabajo"));
     DXUTDeviceSettings deviceSettings;
     DXUTApplyDefaultDeviceSettings(&deviceSettings);
