@@ -58,36 +58,15 @@ static RenderData g_RenderData;
 
 HRESULT RenderData::LoadSceneAssets() {
   InfoVertice arr[] = {
-    { XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-    { XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-    { XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) },
-    { XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-    { XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
-    { XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
-    { XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-    { XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
+	  { XMFLOAT3(0.f, 1.f, 0.f), XMFLOAT4(1.f, 0.0f, 0.0f, 1.0f) },
+	  { XMFLOAT3(1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+	  { XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
   };
   figura.resize(_countof(arr));
   memcpy(figura.data(), arr, sizeof(arr));
 
   WORD indices_figura[] = {
-    3,1,0,
-    2,1,3,
-
-    0,5,4,
-    1,5,0,
-
-    3,4,7,
-    0,4,3,
-
-    1,6,5,
-    2,6,1,
-
-    2,7,6,
-    3,7,2,
-
-    6,4,5,
-    7,4,6,
+	  2,0,1
   };
   indices.resize(_countof(indices_figura));
   memcpy(indices.data(), indices_figura, sizeof(indices_figura));
@@ -174,11 +153,12 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 
   RECT r = DXUTGetWindowClientRect();
   pRender->RotationY = (float)DXUTGetTime();
-  pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);
-  XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
-  XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+  /*pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);*/
+  pRender->transforms.World = XMMatrixIdentity();
+  XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -3.f, 0.0f) + sin(pRender->RotationY) * XMVectorSet(0.f, 0.f, 2.5f, 0.f);
+  XMVECTOR To = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
   XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-  pRender->transforms.View = XMMatrixLookAtLH(Eye, At, Up);
+  pRender->transforms.View = XMMatrixLookToLH(Eye, To, Up);
   pRender->transforms.Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, r.right / (FLOAT)r.bottom, 0.01f, 100.0f);
 
   // Las matrices en constant buffers vienen column-major, por convencion.
