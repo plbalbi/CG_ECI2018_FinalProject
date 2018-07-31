@@ -139,14 +139,26 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 	  return hr;
   }
 
+  // Compile the vertex shader
+  ID3DBlob* pVertexShaderBlob = nullptr;
+  V_RETURN(DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "vs_main", "vs_4_0", dwShaderFlags, 0, &pVertexShaderBlob));
+
+  // Create the vertex shader
+  hr = pd3dDevice->CreateVertexShader(pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), nullptr, &BasicVS);
+  if (FAILED(hr))
+  {
+	  SAFE_RELEASE(pVertexShaderBlob);
+	  return hr;
+  }
+
   V_RETURN(pd3dDevice->CreateInputLayout(inputElementDescs, _countof(inputElementDescs), g_vs_main, sizeof(g_vs_main), &InputLayout));
-  V_RETURN(pd3dDevice->CreateVertexShader(g_vs_main, sizeof(g_vs_main), nullptr, &BasicVS));
 
   return hr;
 }
 
 HRESULT CALLBACK HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, _In_ const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc, _In_opt_ void* pUserContext) {
   RenderData *pRender = &g_RenderData;
+
   HRESULT hr = S_OK;
   pRender->reset();
   V_RETURN(pRender->LoadSceneAssets());
