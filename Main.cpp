@@ -6,10 +6,33 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 #include "DXUT.h"
+#include "SDKmisc.h"
 
 #pragma warning( disable : 4100 )
 
 using namespace DirectX;
+
+//Geometry definition structs
+
+typedef struct simpleVertex {
+	XMFLOAT3 position;
+} simpleVertex;
+
+
+// vBuffer data layout
+D3D11_INPUT_ELEMENT_DESC inputLayout[] = {
+	{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+};
+
+UINT layoutElementsCount = ARRAYSIZE(inputLayout);
+
+// Global variables
+ID3D11VertexShader*         g_pVertexShader = nullptr;
+ID3D11PixelShader*          g_pPixelShader = nullptr;
+XMMATRIX                    g_World;
+XMMATRIX                    g_View;
+XMMATRIX                    g_Projection;
+
 
 
 //--------------------------------------------------------------------------------------
@@ -37,6 +60,85 @@ bool CALLBACK ModifyDeviceSettings( DXUTDeviceSettings* pDeviceSettings, void* p
 HRESULT CALLBACK OnD3D11CreateDevice( ID3D11Device* pd3dDevice, const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc,
                                       void* pUserContext )
 {
+	HRESULT hr;
+
+	// Sample vertex data. Render a traingle centerd in (0,0,0)
+	simpleVertex vertices[] = {
+		XMFLOAT3(0.0f, 1.0f, 0.0f),
+		XMFLOAT3(1.0f, -1.0f, 0.0f),
+		XMFLOAT3(-1.0f, -1.0f, 0.0f)
+	};
+
+	// Create vertex buffer descriptor
+	D3D11_BUFFER_DESC bufferDescriptor;
+
+	ZeroMemory(&bufferDescriptor, sizeof(bufferDescriptor));
+
+	bufferDescriptor.Usage = D3D11_USAGE_DEFAULT;
+	bufferDescriptor.ByteWidth = sizeof(simpleVertex) * 3;
+	bufferDescriptor.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDescriptor.CPUAccessFlags = 0;
+	bufferDescriptor.MiscFlags = 0;
+
+	// Create descriptor of the data that will go into the vBuffer
+	D3D11_SUBRESOURCE_DATA bufferDataDescriptor;
+
+	ZeroMemory(&bufferDataDescriptor, sizeof(bufferDataDescriptor));
+
+	bufferDataDescriptor.pSysMem = vertices;
+	UINT stride = sizeof(simpleVertex); // Strides count across vBuffer
+	UINT offset = 0; // Offset from buffer start
+
+	auto pImmediateContext = DXUTGetD3D11DeviceContext();
+
+	ID3D11Buffer *pVBuffer;
+	
+	// Create buffer into D3D device
+	V_RETURN( pd3dDevice->CreateBuffer(&bufferDescriptor, &bufferDataDescriptor, &pVBuffer) );
+
+	// Set buffer data into IA
+	pImmediateContext->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
+
+	// Shaders stuff
+
+	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#ifdef _DEBUG
+	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+	// Setting this flag improves the shader debugging experience, but still allows 
+	// the shaders to be optimized and to run exactly the way they will run in 
+	// the release configuration of this program.
+	dwShaderFlags |= D3DCOMPILE_DEBUG;
+
+	// Disable optimizations to further improve shader debugging
+	dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+	// Compile the vertex shader
+	ID3DBlob* pVSBlob = nullptr;
+	// TODO: Fill shader route and entry point
+	V_RETURN(DXUTCompileFromFile(L"", nullptr, "VS", "vs_4_0", dwShaderFlags, 0, &pVSBlob));
+
+	// Create the vertex shader
+	hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &g_pVertexShader);
+	if (FAILED(hr))
+	{
+		SAFE_RELEASE(pVSBlob);
+		return hr;
+	}
+
+	// Compile the pixel shader
+	ID3DBlob* pPSBlob = nullptr;
+	// TODO: Fill shader route and entry point
+	V_RETURN(DXUTCompileFromFile(L"", nullptr, "PS", "ps_4_0", dwShaderFlags, 0, &pPSBlob));
+
+	// Create the vertex shader
+	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShader);
+	if (FAILED(hr))
+	{
+		SAFE_RELEASE(pVSBlob);
+		return hr;
+	}
+
     return S_OK;
 }
 
@@ -160,7 +262,7 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
     DXUTInit( true, true, nullptr ); // Parse the command line, show msgboxes on error, no extra command line params
     DXUTSetCursorSettings( true, true ); // Show the cursor and clip it when in full screen
-    DXUTCreateWindow( L"EmptyProject11" );
+    DXUTCreateWindow( L"ECI2018_FinalProject" );
 
     // Only require 10-level hardware or later
     DXUTCreateDevice( D3D_FEATURE_LEVEL_10_0, true, 800, 600 );
