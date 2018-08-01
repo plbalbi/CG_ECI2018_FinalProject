@@ -28,3 +28,4 @@
 // DXUTCompileFromFile, for HLSL shader compilation
 #include "DXUTgui.h"
 #include "SDKmisc.h"
+#include "SDKmesh.h"

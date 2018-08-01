@@ -36,6 +36,7 @@ public:
   std::vector<InfoVertice> figura;
   std::vector<WORD> indices;
   ShaderTransforms transforms;
+  CDXUTSDKMesh sampleMesh;
   float RotationY = 0.0f;
 
   HRESULT LoadSceneAssets();
@@ -51,6 +52,7 @@ public:
     BasicPS = nullptr;
     figura.clear();
 	indices.clear();
+	sampleMesh.Destroy();
   }
 };
 
@@ -76,16 +78,16 @@ HRESULT RenderData::LoadSceneAssets() {
 HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
   HRESULT hr = S_OK;
 
-  CD3D11_BUFFER_DESC vbDesc(figura.size() * sizeof(figura[0]), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+  /*CD3D11_BUFFER_DESC vbDesc(figura.size() * sizeof(figura[0]), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
   D3D11_SUBRESOURCE_DATA vbData = { figura.data(), 0, 0 };
-  V_RETURN(pd3dDevice->CreateBuffer(&vbDesc, &vbData, &VertexBuffer));
+  V_RETURN(pd3dDevice->CreateBuffer(&vbDesc, &vbData, &VertexBuffer));*/
 
   CD3D11_BUFFER_DESC cbDesc(sizeof(transforms), D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DEFAULT);
   V_RETURN(pd3dDevice->CreateBuffer(&cbDesc, nullptr, &CBuffer));
 
-  CD3D11_BUFFER_DESC ibDesc(indices.size() * sizeof(indices[0]), D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_DEFAULT);
+  /*CD3D11_BUFFER_DESC ibDesc(indices.size() * sizeof(indices[0]), D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_DEFAULT);
   D3D11_SUBRESOURCE_DATA ibData = { indices.data(), 0, 0 };
-  V_RETURN(pd3dDevice->CreateBuffer(&ibDesc, &ibData, &IndexBuffer));
+  V_RETURN(pd3dDevice->CreateBuffer(&ibDesc, &ibData, &IndexBuffer));*/
 
   // LPCSTR SemanticName; UINT SemanticIndex; DXGI_FORMAT Format; UINT InputSlot;
   // UINT AlignedByteOffset; D3D11_INPUT_CLASSIFICATION InputSlotClass; UINT InstanceDataStepRate;
@@ -93,6 +95,14 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
   };
+
+  // Define the input layout
+  const D3D11_INPUT_ELEMENT_DESC meshIALayout[] = {
+	  { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	  { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	  { "TEXCOORD0", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+  };
+
 
   DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
 #ifdef _DEBUG
@@ -130,7 +140,10 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 	  return hr;
   }
 
-  V_RETURN(pd3dDevice->CreateInputLayout(inputElementDescs, _countof(inputElementDescs), g_vs_main, sizeof(g_vs_main), &InputLayout));
+  V_RETURN(pd3dDevice->CreateInputLayout(meshIALayout, _countof(meshIALayout), pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), &InputLayout));
+
+  std::cout << "Loading mesh" << std::endl;
+  V_RETURN(g_RenderData.sampleMesh.Create(pd3dDevice, L"models\\cube.sdkmesh"));
 
   return hr;
 }
@@ -167,21 +180,48 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
   pRender->transforms.Projection = XMMatrixTranspose(pRender->transforms.Projection);
   pd3dImmediateContext->UpdateSubresource(pRender->CBuffer, 0, nullptr, &pRender->transforms, 0, 0);
 
+
+  UINT Strides[1];
+  UINT Offsets[1];
+  ID3D11Buffer* pVB[1];
+  pVB[0] = pRender->sampleMesh.GetVB11(0, 0);
+  Strides[0] = (UINT)pRender->sampleMesh.GetVertexStride(0, 0);
+  Offsets[0] = 0;
+  pd3dImmediateContext->IASetVertexBuffers(0, 1, pVB, Strides, Offsets);
+  pd3dImmediateContext->IASetIndexBuffer(pRender->sampleMesh.GetIB11(0), pRender->sampleMesh.GetIBFormat11(0), 0);
+
   D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
   ID3D11RenderTargetView *rtvViews[1] = { rtv };
-  ID3D11Buffer *vertexBuffers[1] = { pRender->VertexBuffer };
+  /*ID3D11Buffer *vertexBuffers[1] = { pRender->VertexBuffer };
   UINT strides[1] = { sizeof(InfoVertice) };
-  UINT offsets[1] = { 0 };
-  pd3dImmediateContext->IASetVertexBuffers(0, 1, vertexBuffers, strides, offsets);
-  pd3dImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-  pd3dImmediateContext->IASetIndexBuffer(pRender->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+  UINT offsets[1] = { 0 };*/
+  //pd3dImmediateContext->IASetVertexBuffers(0, 1, vertexBuffers, strides, offsets);
+  //pd3dImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  //pd3dImmediateContext->IASetIndexBuffer(pRender->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
   pd3dImmediateContext->IASetInputLayout(pRender->InputLayout);
   pd3dImmediateContext->VSSetShader(pRender->BasicVS, nullptr, 0);
   pd3dImmediateContext->VSSetConstantBuffers(0, 1, &pRender->CBuffer.p);
   pd3dImmediateContext->RSSetViewports(1, viewports);
   pd3dImmediateContext->PSSetShader(pRender->BasicPS, nullptr, 0);
   pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, nullptr);
-  pd3dImmediateContext->DrawIndexed(pRender->indices.size(), 0, 0);
+  //pd3dImmediateContext->DrawIndexed(pRender->indices.size(), 0, 0);
+
+  for (UINT subset = 0; subset < pRender->sampleMesh.GetNumSubsets(0); ++subset)
+  {
+	  auto pSubset = pRender->sampleMesh.GetSubset(0, subset);
+	  auto PrimType = pRender->sampleMesh.GetPrimitiveType11((SDKMESH_PRIMITIVE_TYPE)pSubset->PrimitiveType);
+
+	  pd3dImmediateContext->IASetPrimitiveTopology(PrimType);
+
+	  // Ignores most of the material information in them mesh to use
+	  // only a simple shader
+	  auto pDiffuseRV = pRender->sampleMesh.GetMaterial(pSubset->MaterialID)->pDiffuseRV11;
+
+	  pd3dImmediateContext->PSSetShaderResources(0, 1, &pDiffuseRV);
+	  pd3dImmediateContext->DrawIndexed((UINT)pSubset->IndexCount, 0, (UINT)pSubset->VertexStart);
+  }
+
+
 }
 
 int main()
