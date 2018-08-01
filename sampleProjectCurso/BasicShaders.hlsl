@@ -1,8 +1,3 @@
-#if 0
-fxc BasicShaders.hlsl /E ps_main /T ps_4_0 /Od /Zi /Fh BasicShaders.ps.h
-fxc BasicShaders.hlsl /E vs_main /T vs_4_0 /Od /Zi /Fh BasicShaders.vs.h
-#endif
-
 cbuffer transforms : register(b0)
 {
     float4x4 World;
@@ -10,22 +5,45 @@ cbuffer transforms : register(b0)
     float4x4 Projection;
 };
 
-struct ps_input {
-  float4 pos : SV_POSITION;
-  float4 color : COLOR;
+struct VS_INPUT
+{
+    float3 Pos : POSITION; //position
+    float3 Norm : NORMAL; //normal
+    float2 Tex : TEXCOORD0; //texture coordinate
 };
 
-ps_input vs_main(float4 pos : POSITION, float4 Color : COLOR) {
-  ps_input p;
+struct PS_INPUT
+{
+    float4 Pos : SV_POSITION;
+    float4 Diffuse : COLOR0;
+    float2 Tex : TEXCOORD1;
+};
 
-  pos = mul(pos, World);
-  pos = mul(pos, View);
-  pos = mul(pos, Projection);
-  p.pos = pos;
-  p.color = Color;
-  return p;
+//--------------------------------------------------------------------------------------
+// Vertex Shader
+//--------------------------------------------------------------------------------------
+PS_INPUT VS( VS_INPUT input )
+{
+    PS_INPUT output = (PS_INPUT)0;
+    output.Pos = mul( float4(input.Pos,1), World);
+    output.Pos = mul( output.Pos, View);
+    output.Pos = mul( output.Pos, Projection);
+
+    output.Diffuse = float4(1.0f, 0.0f, 0.0f, 1.0f);
+
+    output.Tex = input.Tex;
+    
+    return output;
 }
 
-float4 ps_main(ps_input input) : SV_Target {
-    return input.color;
+
+//--------------------------------------------------------------------------------------
+// Pixel Shader
+//--------------------------------------------------------------------------------------
+float4 PS( PS_INPUT input) : SV_Target
+{
+    //calculate lighting assuming light color is <1,1,1,1>
+    float4 outputColor = input.Diffuse;
+    outputColor.a = 1;
+    return outputColor;
 }

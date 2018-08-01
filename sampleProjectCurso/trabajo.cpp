@@ -7,6 +7,8 @@
 #include "BasicShaders.ps.h"
 #include "BasicShaders.vs.h"
 
+#define _DEBUG
+
 using namespace DirectX;
 
 inline HRESULT AtlCheck(HRESULT hr) {
@@ -91,18 +93,15 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 
   // LPCSTR SemanticName; UINT SemanticIndex; DXGI_FORMAT Format; UINT InputSlot;
   // UINT AlignedByteOffset; D3D11_INPUT_CLASSIFICATION InputSlotClass; UINT InstanceDataStepRate;
-  D3D11_INPUT_ELEMENT_DESC inputElementDescs[2] = {
-    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-  };
 
   // Define the input layout
   const D3D11_INPUT_ELEMENT_DESC meshIALayout[] = {
 	  { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	  { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	  { "TEXCOORD0", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	  { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
   };
 
+  UINT meshIALayoutCount = ARRAYSIZE(meshIALayout);
 
   DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
 #ifdef _DEBUG
@@ -118,29 +117,17 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 
   // Compile the pixel shader
   ID3DBlob* pPixelShaderBlob = nullptr;
-  V_RETURN( DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "ps_main", "ps_4_0", dwShaderFlags, 0, &pPixelShaderBlob) );
-
-  // Create the pixel shader
-  hr = pd3dDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(), pPixelShaderBlob->GetBufferSize(), nullptr, &BasicPS);
-  if (FAILED(hr))
-  {
-	  SAFE_RELEASE(pPixelShaderBlob);
-	  return hr;
-  }
-
+  V_RETURN( DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "PS", "ps_4_0", dwShaderFlags, 0, &pPixelShaderBlob) );
   // Compile the vertex shader
   ID3DBlob* pVertexShaderBlob = nullptr;
-  V_RETURN(DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "vs_main", "vs_4_0", dwShaderFlags, 0, &pVertexShaderBlob));
+  V_RETURN(DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "VS", "vs_4_0", dwShaderFlags, 0, &pVertexShaderBlob));
 
-  // Create the vertex shader
-  hr = pd3dDevice->CreateVertexShader(pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), nullptr, &BasicVS);
-  if (FAILED(hr))
-  {
-	  SAFE_RELEASE(pVertexShaderBlob);
-	  return hr;
-  }
+  // Create IA Layout object
+  V_RETURN(pd3dDevice->CreateInputLayout(meshIALayout, meshIALayoutCount, pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), &InputLayout));
 
-  V_RETURN(pd3dDevice->CreateInputLayout(meshIALayout, _countof(meshIALayout), pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), &InputLayout));
+  // Create shader objects
+  V_RETURN(pd3dDevice->CreateVertexShader(pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), nullptr, &BasicVS));
+  V_RETURN(pd3dDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(), pPixelShaderBlob->GetBufferSize(), nullptr, &BasicPS));
 
   std::cout << "Loading mesh" << std::endl;
   V_RETURN(g_RenderData.sampleMesh.Create(pd3dDevice, L"models\\cube.sdkmesh"));
@@ -166,9 +153,8 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 
   RECT r = DXUTGetWindowClientRect();
   pRender->RotationY = (float)DXUTGetTime();
-  /*pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);*/
-  pRender->transforms.World = XMMatrixIdentity();
-  XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -3.f, 0.0f) + sin(pRender->RotationY) * XMVectorSet(0.f, 0.f, 2.5f, 0.f);
+  pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);
+  XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f);
   XMVECTOR To = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
   XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
   pRender->transforms.View = XMMatrixLookToLH(Eye, To, Up);
@@ -224,26 +210,32 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 
 }
 
-int main()
-{
-  try {
-    AtlCheck(DXUTInit());
-	std::cout << "D3D has been initiated correctly" << std::endl;
-    AtlCheck(DXUTCreateWindow(L"Trabajo"));
-    DXUTDeviceSettings deviceSettings;
-    DXUTApplyDefaultDeviceSettings(&deviceSettings);
-#if _DEBUG
-    deviceSettings.d3d11.CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
-    deviceSettings.d3d11.DriverType = D3D_DRIVER_TYPE_WARP;
-#endif
-    DXUTSetCallbackD3D11DeviceCreated(HandleDeviceCreated);
-    DXUTSetCallbackD3D11FrameRender(HandleFrameRender);
-    AtlCheck(DXUTCreateDeviceFromSettings(&deviceSettings));
-    AtlCheck(DXUTMainLoop());
-    g_RenderData.reset();
-  }
-  catch (const CAtlException &e) {
-    wprintf(L"failed with hr=0x%08x", (HRESULT)e);
-  }
-  return 0;
+void CALLBACK OnD3D11DestroyDevice(void* pUserContext) {
+	DXUTGetGlobalResourceCache().OnDestroyDevice();
+
+	g_RenderData.sampleMesh.Destroy();
+}
+
+int main() {
+	try {
+		AtlCheck(DXUTInit());
+		std::cout << "D3D has been initiated correctly" << std::endl;
+		AtlCheck(DXUTCreateWindow(L"Trabajo"));
+		DXUTDeviceSettings deviceSettings;
+		DXUTApplyDefaultDeviceSettings(&deviceSettings);
+		#ifdef _DEBUG
+			deviceSettings.d3d11.CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
+			deviceSettings.d3d11.DriverType = D3D_DRIVER_TYPE_WARP;
+		#endif
+		DXUTSetCallbackD3D11DeviceCreated(HandleDeviceCreated);
+		DXUTSetCallbackD3D11FrameRender(HandleFrameRender);
+		DXUTSetCallbackD3D11DeviceDestroyed(OnD3D11DestroyDevice);
+		AtlCheck(DXUTCreateDeviceFromSettings(&deviceSettings));
+		AtlCheck(DXUTMainLoop());
+		g_RenderData.reset();
+	}
+	catch (const CAtlException &e) {
+		wprintf(L"failed with hr=0x%08x", (HRESULT)e);
+	}
+	return 0;
 }
