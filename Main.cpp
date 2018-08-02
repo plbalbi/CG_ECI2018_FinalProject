@@ -64,42 +64,19 @@ public:
 static RenderData g_RenderData;
 
 HRESULT RenderData::LoadSceneAssets() {
-	InfoVertice arr[] = {
-		{ XMFLOAT3(0.f, 1.f, 0.f), XMFLOAT4(1.f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-	};
-	figura.resize(_countof(arr));
-	memcpy(figura.data(), arr, sizeof(arr));
-
-	WORD indices_figura[] = {
-		2,0,1
-	};
 	this->Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f);
 	this->CameraToDirection = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 	// Lateral direction. Used for camera X Axis displacement, and keep track of the rotated X axis
 	this->LateralDirection = XMVector3Normalize(XMVector3Transform(this->CameraToDirection, XMMatrixRotationY(XM_PI * .5)));
-	indices.resize(_countof(indices_figura));
-	memcpy(indices.data(), indices_figura, sizeof(indices_figura));
+
 	return S_OK;
 }
 
 HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 	HRESULT hr = S_OK;
 
-	/*CD3D11_BUFFER_DESC vbDesc(figura.size() * sizeof(figura[0]), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
-	D3D11_SUBRESOURCE_DATA vbData = { figura.data(), 0, 0 };
-	V_RETURN(pd3dDevice->CreateBuffer(&vbDesc, &vbData, &VertexBuffer));*/
-
 	CD3D11_BUFFER_DESC cbDesc(sizeof(transforms), D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DEFAULT);
 	V_RETURN(pd3dDevice->CreateBuffer(&cbDesc, nullptr, &CBuffer));
-
-	/*CD3D11_BUFFER_DESC ibDesc(indices.size() * sizeof(indices[0]), D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_DEFAULT);
-	D3D11_SUBRESOURCE_DATA ibData = { indices.data(), 0, 0 };
-	V_RETURN(pd3dDevice->CreateBuffer(&ibDesc, &ibData, &IndexBuffer));*/
-
-	// LPCSTR SemanticName; UINT SemanticIndex; DXGI_FORMAT Format; UINT InputSlot;
-	// UINT AlignedByteOffset; D3D11_INPUT_CLASSIFICATION InputSlotClass; UINT InstanceDataStepRate;
 
 	// Define the input layout
 	const D3D11_INPUT_ELEMENT_DESC meshIALayout[] = {
@@ -161,8 +138,6 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 	pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::Coral);
 
 	RECT r = DXUTGetWindowClientRect();
-	/*pRender->RotationY = (float)DXUTGetTime();
-	pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);*/
 	pRender->transforms.World = XMMatrixIdentity();
 	XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f) + g_RenderData.Eye;
 	XMVECTOR To = g_RenderData.CameraToDirection;
@@ -188,19 +163,13 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 
 	D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
 	ID3D11RenderTargetView *rtvViews[1] = { rtv };
-	/*ID3D11Buffer *vertexBuffers[1] = { pRender->VertexBuffer };
-	UINT strides[1] = { sizeof(InfoVertice) };
-	UINT offsets[1] = { 0 };*/
-	//pd3dImmediateContext->IASetVertexBuffers(0, 1, vertexBuffers, strides, offsets);
-	//pd3dImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	//pd3dImmediateContext->IASetIndexBuffer(pRender->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+
 	pd3dImmediateContext->IASetInputLayout(pRender->InputLayout);
 	pd3dImmediateContext->VSSetShader(pRender->BasicVS, nullptr, 0);
 	pd3dImmediateContext->VSSetConstantBuffers(0, 1, &pRender->CBuffer.p);
 	pd3dImmediateContext->RSSetViewports(1, viewports);
 	pd3dImmediateContext->PSSetShader(pRender->BasicPS, nullptr, 0);
 	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, nullptr);
-	//pd3dImmediateContext->DrawIndexed(pRender->indices.size(), 0, 0);
 
 	for (UINT subset = 0; subset < pRender->sampleMesh.GetNumSubsets(0); ++subset)
 	{
@@ -286,16 +255,22 @@ int main() {
 		deviceSettings.d3d11.CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
 		deviceSettings.d3d11.DriverType = D3D_DRIVER_TYPE_WARP;
 #endif
+		
+		// Set DXUT Callback
 		DXUTSetCallbackD3D11DeviceCreated(HandleDeviceCreated);
 		DXUTSetCallbackD3D11FrameRender(HandleFrameRender);
 		DXUTSetCallbackD3D11DeviceDestroyed(OnD3D11DestroyDevice);
 		DXUTSetCallbackKeyboard(OnKeyboard);
 		DXUTSetCallbackMsgProc(MsgProc);
+
+		// Create device
 		AtlCheck(DXUTCreateDeviceFromSettings(&deviceSettings));
+		// Start main loop
 		AtlCheck(DXUTMainLoop());
+		// On exit, retet everything
 		g_RenderData.reset();
-	}
-	catch (const CAtlException &e) {
+
+	} catch (const CAtlException &e) {
 		wprintf(L"failed with hr=0x%08x", (HRESULT)e);
 	}
 	return 0;
