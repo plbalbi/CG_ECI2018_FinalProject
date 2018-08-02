@@ -30,6 +30,8 @@ struct ShaderTransforms {
 	XMFLOAT4 diffuseLightColor;
 };
 
+DXUTDeviceSettings deviceSettings;
+
 class RenderData {
 public:
 	XMVECTOR Eye;
@@ -124,6 +126,8 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 	return hr;
 }
 
+ID3D11Texture2D* pDepthStencil = nullptr;
+
 HRESULT CALLBACK HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, _In_ const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc, _In_opt_ void* pUserContext) {
 	RenderData *pRender = &g_RenderData;
 
@@ -131,14 +135,61 @@ HRESULT CALLBACK HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, _In_ const D
 	pRender->reset();
 	V_RETURN(pRender->LoadSceneAssets());
 	V_RETURN(pRender->CopySceneAssetsToGPU(pd3dDevice));
+
+	D3D11_TEXTURE2D_DESC descDepth;
+
+	descDepth.Width = pBackBufferSurfaceDesc->Width;
+	descDepth.Height = pBackBufferSurfaceDesc->Height;
+	descDepth.MipLevels = 1;
+	descDepth.ArraySize = 1;
+	descDepth.Format = deviceSettings.d3d11.AutoDepthStencilFormat;
+	descDepth.SampleDesc.Count = 1;
+	descDepth.SampleDesc.Quality = 0;
+	descDepth.Usage = D3D11_USAGE_DEFAULT;
+	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	descDepth.CPUAccessFlags = 0;
+	descDepth.MiscFlags = 0;
+
+	V_RETURN( pd3dDevice->CreateTexture2D(&descDepth, nullptr, &pDepthStencil) );
+
 	return hr;
 }
 
 void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11DeviceContext* pd3dImmediateContext, _In_ double fTime, _In_ float fElapsedTime, _In_opt_ void* pUserContext) {
+	HRESULT hr = S_OK;
+
 	RenderData *pRender = &g_RenderData;
 	ID3D11RenderTargetView *rtv = DXUTGetD3D11RenderTargetView();
 
 	pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::LightBlue);
+
+	// Depthbuffering setup
+	D3D11_DEPTH_STENCIL_DESC dsDesc;
+
+	// Depth test parameters
+	dsDesc.DepthEnable = true;
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+	// Stencil test parameters
+	dsDesc.StencilEnable = false;
+
+	// Create depth stencil state
+	ID3D11DepthStencilState * pDSState;
+	pd3dDevice->CreateDepthStencilState(&dsDesc, &pDSState);
+	pd3dImmediateContext->OMSetDepthStencilState(pDSState, 1);
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
+	descDSV.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	descDSV.Texture2D.MipSlice = 0;
+
+	// Create the depth stencil view
+	ID3D11DepthStencilView* pDSV;
+	hr = pd3dDevice->CreateDepthStencilView(pDepthStencil, // Depth stencil texture
+		&descDSV, // Depth stencil desc
+		&pDSV);  // [out] Depth stencil view
+
 
 	RECT r = DXUTGetWindowClientRect();
 	pRender->transforms.World = XMMatrixIdentity();
@@ -172,7 +223,7 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 	pd3dImmediateContext->VSSetConstantBuffers(0, 1, &pRender->CBuffer.p);
 	pd3dImmediateContext->RSSetViewports(1, viewports);
 	pd3dImmediateContext->PSSetShader(pRender->BasicPS, nullptr, 0);
-	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, nullptr);
+	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, pDSV);
 
 	for (UINT subset = 0; subset < pRender->sampleMesh.GetNumSubsets(0); ++subset)
 	{
@@ -252,7 +303,6 @@ int main() {
 		AtlCheck(DXUTInit());
 		std::cout << "D3D has been initiated correctly" << std::endl;
 		AtlCheck(DXUTCreateWindow(L"Trabajo"));
-		DXUTDeviceSettings deviceSettings;
 		DXUTApplyDefaultDeviceSettings(&deviceSettings);
 #ifdef _DEBUG
 		deviceSettings.d3d11.CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
