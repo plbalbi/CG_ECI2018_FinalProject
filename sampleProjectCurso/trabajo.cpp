@@ -31,6 +31,7 @@ class RenderData {
 public:
 	XMVECTOR Eye;
 	XMVECTOR CameraToDirection;
+	XMVECTOR LateralDirection;
   CComPtr<ID3D11Buffer> CBuffer;
   CComPtr<ID3D11Buffer> IndexBuffer;
   CComPtr<ID3D11Buffer> VertexBuffer;
@@ -76,6 +77,8 @@ HRESULT RenderData::LoadSceneAssets() {
   };
   this->Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f);
   this->CameraToDirection = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+  // Lateral direction. Used for camera X Axis displacement, and keep track of the rotated X axis
+  this->LateralDirection = XMVector3Normalize( XMVector3Transform(this->CameraToDirection, XMMatrixRotationY(XM_PI * .5)) );
   indices.resize(_countof(indices_figura));
   memcpy(indices.data(), indices_figura, sizeof(indices_figura));
   return S_OK;
@@ -156,8 +159,9 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
   pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::Coral);
 
   RECT r = DXUTGetWindowClientRect();
-  pRender->RotationY = (float)DXUTGetTime();
-  pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);
+  /*pRender->RotationY = (float)DXUTGetTime();
+  pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);*/
+  pRender->transforms.World = XMMatrixIdentity();
   XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f) + g_RenderData.Eye;
   XMVECTOR To = g_RenderData.CameraToDirection;
   XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -224,15 +228,18 @@ void CALLBACK OnD3D11DestroyDevice(void* pUserContext) {
 // Handle key presses
 //--------------------------------------------------------------------------------------
 void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext) {
+	float angleDisplacement = .02f;
 	if (bKeyDown) {
 		switch (nChar) {
 		case VK_LEFT:
 			// Rotate camera in y-axis clockwise
-			g_RenderData.CameraToDirection = XMVector3Transform( g_RenderData.CameraToDirection, XMMatrixRotationY(-.05f) );
+			g_RenderData.CameraToDirection = XMVector3Normalize( XMVector3Transform( g_RenderData.CameraToDirection, XMMatrixRotationY(-angleDisplacement) ) );
+			g_RenderData.LateralDirection = XMVector3Normalize( XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(-angleDisplacement)) );
 			break;
 		case VK_RIGHT:
 			// Rotate camera in y-axis counter-clockwise
-			g_RenderData.CameraToDirection = XMVector3Transform(g_RenderData.CameraToDirection, XMMatrixRotationY(.05f));
+			g_RenderData.CameraToDirection = XMVector3Normalize( XMVector3Transform(g_RenderData.CameraToDirection, XMMatrixRotationY(angleDisplacement)) );
+			g_RenderData.LateralDirection = XMVector3Normalize( XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(angleDisplacement)) );
 			break;
 		default:
 			break;
@@ -249,16 +256,16 @@ LRESULT CALLBACK MsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 	if (uMsg == WM_CHAR) {
 		switch (wParam) {
 		case 'w':
-			g_RenderData.Eye += XMVectorSet(0.0f, 0.0f, keyDeltaMove, 0.0f);
+			g_RenderData.Eye += g_RenderData.CameraToDirection * keyDeltaMove;
 			break;
 		case 's':
-			g_RenderData.Eye += XMVectorSet(0.0f, 0.0f, -keyDeltaMove, 0.0f);
+			g_RenderData.Eye += g_RenderData.CameraToDirection * -keyDeltaMove;
 			break;
 		case 'a':
-			g_RenderData.Eye += XMVectorSet(keyDeltaMove, 0.0f, 0.f, 0.0f);
+			g_RenderData.Eye += g_RenderData.LateralDirection * -keyDeltaMove;
 			break;
 		case 'd':
-			g_RenderData.Eye += XMVectorSet(-keyDeltaMove, 0.0f, 0.f, 0.0f);
+			g_RenderData.Eye += g_RenderData.LateralDirection * keyDeltaMove;
 			break;
 		default:
 			break;
