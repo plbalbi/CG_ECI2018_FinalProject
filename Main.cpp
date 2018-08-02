@@ -12,19 +12,19 @@
 using namespace DirectX;
 
 inline HRESULT AtlCheck(HRESULT hr) {
-  if (SUCCEEDED(hr)) return hr;
-  AtlThrow(hr);
+	if (SUCCEEDED(hr)) return hr;
+	AtlThrow(hr);
 }
 
 struct ShaderTransforms {
-  XMMATRIX World;
-  XMMATRIX View;
-  XMMATRIX Projection;
+	XMMATRIX World;
+	XMMATRIX View;
+	XMMATRIX Projection;
 };
 
 struct InfoVertice {
-  XMFLOAT3 Pos;
-  XMFLOAT4 Color;
+	XMFLOAT3 Pos;
+	XMFLOAT4 Color;
 };
 
 class RenderData {
@@ -32,190 +32,190 @@ public:
 	XMVECTOR Eye;
 	XMVECTOR CameraToDirection;
 	XMVECTOR LateralDirection;
-  CComPtr<ID3D11Buffer> CBuffer;
-  CComPtr<ID3D11Buffer> IndexBuffer;
-  CComPtr<ID3D11Buffer> VertexBuffer;
-  CComPtr<ID3D11InputLayout> InputLayout;
-  CComPtr<ID3D11VertexShader> BasicVS;
-  CComPtr<ID3D11PixelShader> BasicPS;
-  std::vector<InfoVertice> figura;
-  std::vector<WORD> indices;
-  ShaderTransforms transforms;
-  CDXUTSDKMesh sampleMesh;
-  float RotationY = 0.0f;
+	CComPtr<ID3D11Buffer> CBuffer;
+	CComPtr<ID3D11Buffer> IndexBuffer;
+	CComPtr<ID3D11Buffer> VertexBuffer;
+	CComPtr<ID3D11InputLayout> InputLayout;
+	CComPtr<ID3D11VertexShader> BasicVS;
+	CComPtr<ID3D11PixelShader> BasicPS;
+	std::vector<InfoVertice> figura;
+	std::vector<WORD> indices;
+	ShaderTransforms transforms;
+	CDXUTSDKMesh sampleMesh;
+	float RotationY = 0.0f;
 
-  HRESULT LoadSceneAssets();
-  HRESULT CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice);
+	HRESULT LoadSceneAssets();
+	HRESULT CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice);
 
-  void reset() {
-    RotationY = 0.0f;
-    CBuffer = nullptr;
-	IndexBuffer = nullptr;
-    VertexBuffer = nullptr;
-    InputLayout = nullptr;
-    BasicVS = nullptr;
-    BasicPS = nullptr;
-    figura.clear();
-	indices.clear();
-	sampleMesh.Destroy();
-  }
+	void reset() {
+		RotationY = 0.0f;
+		CBuffer = nullptr;
+		IndexBuffer = nullptr;
+		VertexBuffer = nullptr;
+		InputLayout = nullptr;
+		BasicVS = nullptr;
+		BasicPS = nullptr;
+		figura.clear();
+		indices.clear();
+		sampleMesh.Destroy();
+	}
 };
 
 static RenderData g_RenderData;
 
 HRESULT RenderData::LoadSceneAssets() {
-  InfoVertice arr[] = {
-	  { XMFLOAT3(0.f, 1.f, 0.f), XMFLOAT4(1.f, 0.0f, 0.0f, 1.0f) },
-	  { XMFLOAT3(1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-	  { XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-  };
-  figura.resize(_countof(arr));
-  memcpy(figura.data(), arr, sizeof(arr));
+	InfoVertice arr[] = {
+		{ XMFLOAT3(0.f, 1.f, 0.f), XMFLOAT4(1.f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+	};
+	figura.resize(_countof(arr));
+	memcpy(figura.data(), arr, sizeof(arr));
 
-  WORD indices_figura[] = {
-	  2,0,1
-  };
-  this->Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f);
-  this->CameraToDirection = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-  // Lateral direction. Used for camera X Axis displacement, and keep track of the rotated X axis
-  this->LateralDirection = XMVector3Normalize( XMVector3Transform(this->CameraToDirection, XMMatrixRotationY(XM_PI * .5)) );
-  indices.resize(_countof(indices_figura));
-  memcpy(indices.data(), indices_figura, sizeof(indices_figura));
-  return S_OK;
+	WORD indices_figura[] = {
+		2,0,1
+	};
+	this->Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f);
+	this->CameraToDirection = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	// Lateral direction. Used for camera X Axis displacement, and keep track of the rotated X axis
+	this->LateralDirection = XMVector3Normalize(XMVector3Transform(this->CameraToDirection, XMMatrixRotationY(XM_PI * .5)));
+	indices.resize(_countof(indices_figura));
+	memcpy(indices.data(), indices_figura, sizeof(indices_figura));
+	return S_OK;
 }
 
 HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
-  HRESULT hr = S_OK;
+	HRESULT hr = S_OK;
 
-  /*CD3D11_BUFFER_DESC vbDesc(figura.size() * sizeof(figura[0]), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
-  D3D11_SUBRESOURCE_DATA vbData = { figura.data(), 0, 0 };
-  V_RETURN(pd3dDevice->CreateBuffer(&vbDesc, &vbData, &VertexBuffer));*/
+	/*CD3D11_BUFFER_DESC vbDesc(figura.size() * sizeof(figura[0]), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_IMMUTABLE);
+	D3D11_SUBRESOURCE_DATA vbData = { figura.data(), 0, 0 };
+	V_RETURN(pd3dDevice->CreateBuffer(&vbDesc, &vbData, &VertexBuffer));*/
 
-  CD3D11_BUFFER_DESC cbDesc(sizeof(transforms), D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DEFAULT);
-  V_RETURN(pd3dDevice->CreateBuffer(&cbDesc, nullptr, &CBuffer));
+	CD3D11_BUFFER_DESC cbDesc(sizeof(transforms), D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DEFAULT);
+	V_RETURN(pd3dDevice->CreateBuffer(&cbDesc, nullptr, &CBuffer));
 
-  /*CD3D11_BUFFER_DESC ibDesc(indices.size() * sizeof(indices[0]), D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_DEFAULT);
-  D3D11_SUBRESOURCE_DATA ibData = { indices.data(), 0, 0 };
-  V_RETURN(pd3dDevice->CreateBuffer(&ibDesc, &ibData, &IndexBuffer));*/
+	/*CD3D11_BUFFER_DESC ibDesc(indices.size() * sizeof(indices[0]), D3D11_BIND_INDEX_BUFFER, D3D11_USAGE_DEFAULT);
+	D3D11_SUBRESOURCE_DATA ibData = { indices.data(), 0, 0 };
+	V_RETURN(pd3dDevice->CreateBuffer(&ibDesc, &ibData, &IndexBuffer));*/
 
-  // LPCSTR SemanticName; UINT SemanticIndex; DXGI_FORMAT Format; UINT InputSlot;
-  // UINT AlignedByteOffset; D3D11_INPUT_CLASSIFICATION InputSlotClass; UINT InstanceDataStepRate;
+	// LPCSTR SemanticName; UINT SemanticIndex; DXGI_FORMAT Format; UINT InputSlot;
+	// UINT AlignedByteOffset; D3D11_INPUT_CLASSIFICATION InputSlotClass; UINT InstanceDataStepRate;
 
-  // Define the input layout
-  const D3D11_INPUT_ELEMENT_DESC meshIALayout[] = {
-	  { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	  { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	  { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-  };
+	// Define the input layout
+	const D3D11_INPUT_ELEMENT_DESC meshIALayout[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
 
-  UINT meshIALayoutCount = ARRAYSIZE(meshIALayout);
+	UINT meshIALayoutCount = ARRAYSIZE(meshIALayout);
 
-  DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
 #ifdef _DEBUG
-  // Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
-  // Setting this flag improves the shader debugging experience, but still allows 
-  // the shaders to be optimized and to run exactly the way they will run in 
-  // the release configuration of this program.
-  dwShaderFlags |= D3DCOMPILE_DEBUG;
+	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+	// Setting this flag improves the shader debugging experience, but still allows 
+	// the shaders to be optimized and to run exactly the way they will run in 
+	// the release configuration of this program.
+	dwShaderFlags |= D3DCOMPILE_DEBUG;
 
-  // Disable optimizations to further improve shader debugging
-  dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+	// Disable optimizations to further improve shader debugging
+	dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-  // Compile the pixel shader
-  ID3DBlob* pPixelShaderBlob = nullptr;
-  V_RETURN( DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "PS", "ps_4_0", dwShaderFlags, 0, &pPixelShaderBlob) );
-  // Compile the vertex shader
-  ID3DBlob* pVertexShaderBlob = nullptr;
-  V_RETURN(DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "VS", "vs_4_0", dwShaderFlags, 0, &pVertexShaderBlob));
+	// Compile the pixel shader
+	ID3DBlob* pPixelShaderBlob = nullptr;
+	V_RETURN(DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "PS", "ps_4_0", dwShaderFlags, 0, &pPixelShaderBlob));
+	// Compile the vertex shader
+	ID3DBlob* pVertexShaderBlob = nullptr;
+	V_RETURN(DXUTCompileFromFile(L"BasicShaders.hlsl", nullptr, "VS", "vs_4_0", dwShaderFlags, 0, &pVertexShaderBlob));
 
-  // Create IA Layout object
-  V_RETURN(pd3dDevice->CreateInputLayout(meshIALayout, meshIALayoutCount, pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), &InputLayout));
+	// Create IA Layout object
+	V_RETURN(pd3dDevice->CreateInputLayout(meshIALayout, meshIALayoutCount, pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), &InputLayout));
 
-  // Create shader objects
-  V_RETURN(pd3dDevice->CreateVertexShader(pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), nullptr, &BasicVS));
-  V_RETURN(pd3dDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(), pPixelShaderBlob->GetBufferSize(), nullptr, &BasicPS));
+	// Create shader objects
+	V_RETURN(pd3dDevice->CreateVertexShader(pVertexShaderBlob->GetBufferPointer(), pVertexShaderBlob->GetBufferSize(), nullptr, &BasicVS));
+	V_RETURN(pd3dDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(), pPixelShaderBlob->GetBufferSize(), nullptr, &BasicPS));
 
-  std::cout << "Loading mesh" << std::endl;
-  V_RETURN(g_RenderData.sampleMesh.Create(pd3dDevice, L"models\\abstract.sdkmesh"));
 
-  return hr;
+	// I think this method creates the model object, loads it, and creates the corresponding vertex buffers
+	std::cout << "Loading mesh" << std::endl;
+	V_RETURN(g_RenderData.sampleMesh.Create(pd3dDevice, L"models\\abstract.sdkmesh"));
+
+	return hr;
 }
 
 HRESULT CALLBACK HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, _In_ const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc, _In_opt_ void* pUserContext) {
-  RenderData *pRender = &g_RenderData;
+	RenderData *pRender = &g_RenderData;
 
-  HRESULT hr = S_OK;
-  pRender->reset();
-  V_RETURN(pRender->LoadSceneAssets());
-  V_RETURN(pRender->CopySceneAssetsToGPU(pd3dDevice));
-  return hr;
+	HRESULT hr = S_OK;
+	pRender->reset();
+	V_RETURN(pRender->LoadSceneAssets());
+	V_RETURN(pRender->CopySceneAssetsToGPU(pd3dDevice));
+	return hr;
 }
 
 void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11DeviceContext* pd3dImmediateContext, _In_ double fTime, _In_ float fElapsedTime, _In_opt_ void* pUserContext) {
-  RenderData *pRender = &g_RenderData;
-  ID3D11RenderTargetView *rtv = DXUTGetD3D11RenderTargetView();
+	RenderData *pRender = &g_RenderData;
+	ID3D11RenderTargetView *rtv = DXUTGetD3D11RenderTargetView();
 
-  pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::Coral);
+	pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::Coral);
 
-  RECT r = DXUTGetWindowClientRect();
-  /*pRender->RotationY = (float)DXUTGetTime();
-  pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);*/
-  pRender->transforms.World = XMMatrixIdentity();
-  XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f) + g_RenderData.Eye;
-  XMVECTOR To = g_RenderData.CameraToDirection;
-  XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-  pRender->transforms.View = XMMatrixLookToLH(Eye, To, Up);
-  pRender->transforms.Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, r.right / (FLOAT)r.bottom, 0.01f, 100.0f);
+	RECT r = DXUTGetWindowClientRect();
+	/*pRender->RotationY = (float)DXUTGetTime();
+	pRender->transforms.World = XMMatrixRotationY(pRender->RotationY);*/
+	pRender->transforms.World = XMMatrixIdentity();
+	XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.f, 0.0f) + g_RenderData.Eye;
+	XMVECTOR To = g_RenderData.CameraToDirection;
+	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	pRender->transforms.View = XMMatrixLookToLH(Eye, To, Up);
+	pRender->transforms.Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, r.right / (FLOAT)r.bottom, 0.01f, 100.0f);
 
-  // Las matrices en constant buffers vienen column-major, por convencion.
-  pRender->transforms.World = XMMatrixTranspose(pRender->transforms.World);
-  pRender->transforms.View = XMMatrixTranspose(pRender->transforms.View);
-  pRender->transforms.Projection = XMMatrixTranspose(pRender->transforms.Projection);
-  pd3dImmediateContext->UpdateSubresource(pRender->CBuffer, 0, nullptr, &pRender->transforms, 0, 0);
-
-
-  UINT Strides[1];
-  UINT Offsets[1];
-  ID3D11Buffer* pVB[1];
-  pVB[0] = pRender->sampleMesh.GetVB11(0, 0);
-  Strides[0] = (UINT)pRender->sampleMesh.GetVertexStride(0, 0);
-  Offsets[0] = 0;
-  pd3dImmediateContext->IASetVertexBuffers(0, 1, pVB, Strides, Offsets);
-  pd3dImmediateContext->IASetIndexBuffer(pRender->sampleMesh.GetIB11(0), pRender->sampleMesh.GetIBFormat11(0), 0);
-
-  D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
-  ID3D11RenderTargetView *rtvViews[1] = { rtv };
-  /*ID3D11Buffer *vertexBuffers[1] = { pRender->VertexBuffer };
-  UINT strides[1] = { sizeof(InfoVertice) };
-  UINT offsets[1] = { 0 };*/
-  //pd3dImmediateContext->IASetVertexBuffers(0, 1, vertexBuffers, strides, offsets);
-  //pd3dImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-  //pd3dImmediateContext->IASetIndexBuffer(pRender->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-  pd3dImmediateContext->IASetInputLayout(pRender->InputLayout);
-  pd3dImmediateContext->VSSetShader(pRender->BasicVS, nullptr, 0);
-  pd3dImmediateContext->VSSetConstantBuffers(0, 1, &pRender->CBuffer.p);
-  pd3dImmediateContext->RSSetViewports(1, viewports);
-  pd3dImmediateContext->PSSetShader(pRender->BasicPS, nullptr, 0);
-  pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, nullptr);
-  //pd3dImmediateContext->DrawIndexed(pRender->indices.size(), 0, 0);
-
-  for (UINT subset = 0; subset < pRender->sampleMesh.GetNumSubsets(0); ++subset)
-  {
-	  auto pSubset = pRender->sampleMesh.GetSubset(0, subset);
-	  auto PrimType = pRender->sampleMesh.GetPrimitiveType11((SDKMESH_PRIMITIVE_TYPE)pSubset->PrimitiveType);
-
-	  pd3dImmediateContext->IASetPrimitiveTopology(PrimType);
-
-	  // Ignores most of the material information in them mesh to use
-	  // only a simple shader
-	  auto pDiffuseRV = pRender->sampleMesh.GetMaterial(pSubset->MaterialID)->pDiffuseRV11;
-
-	  pd3dImmediateContext->PSSetShaderResources(0, 1, &pDiffuseRV);
-	  pd3dImmediateContext->DrawIndexed((UINT)pSubset->IndexCount, 0, (UINT)pSubset->VertexStart);
-  }
+	// Las matrices en constant buffers vienen column-major, por convencion.
+	pRender->transforms.World = XMMatrixTranspose(pRender->transforms.World);
+	pRender->transforms.View = XMMatrixTranspose(pRender->transforms.View);
+	pRender->transforms.Projection = XMMatrixTranspose(pRender->transforms.Projection);
+	pd3dImmediateContext->UpdateSubresource(pRender->CBuffer, 0, nullptr, &pRender->transforms, 0, 0);
 
 
+	UINT Strides[1];
+	UINT Offsets[1];
+	ID3D11Buffer* pVB[1];
+	pVB[0] = pRender->sampleMesh.GetVB11(0, 0);
+	Strides[0] = (UINT)pRender->sampleMesh.GetVertexStride(0, 0);
+	Offsets[0] = 0;
+	pd3dImmediateContext->IASetVertexBuffers(0, 1, pVB, Strides, Offsets);
+	pd3dImmediateContext->IASetIndexBuffer(pRender->sampleMesh.GetIB11(0), pRender->sampleMesh.GetIBFormat11(0), 0);
+
+	D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
+	ID3D11RenderTargetView *rtvViews[1] = { rtv };
+	/*ID3D11Buffer *vertexBuffers[1] = { pRender->VertexBuffer };
+	UINT strides[1] = { sizeof(InfoVertice) };
+	UINT offsets[1] = { 0 };*/
+	//pd3dImmediateContext->IASetVertexBuffers(0, 1, vertexBuffers, strides, offsets);
+	//pd3dImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//pd3dImmediateContext->IASetIndexBuffer(pRender->IndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	pd3dImmediateContext->IASetInputLayout(pRender->InputLayout);
+	pd3dImmediateContext->VSSetShader(pRender->BasicVS, nullptr, 0);
+	pd3dImmediateContext->VSSetConstantBuffers(0, 1, &pRender->CBuffer.p);
+	pd3dImmediateContext->RSSetViewports(1, viewports);
+	pd3dImmediateContext->PSSetShader(pRender->BasicPS, nullptr, 0);
+	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, nullptr);
+	//pd3dImmediateContext->DrawIndexed(pRender->indices.size(), 0, 0);
+
+	for (UINT subset = 0; subset < pRender->sampleMesh.GetNumSubsets(0); ++subset)
+	{
+		auto pSubset = pRender->sampleMesh.GetSubset(0, subset);
+		auto PrimType = pRender->sampleMesh.GetPrimitiveType11((SDKMESH_PRIMITIVE_TYPE)pSubset->PrimitiveType);
+
+		pd3dImmediateContext->IASetPrimitiveTopology(PrimType);
+
+		// Ignores most of the material information in them mesh to use
+		// only a simple shader
+		auto pDiffuseRV = pRender->sampleMesh.GetMaterial(pSubset->MaterialID)->pDiffuseRV11;
+
+		pd3dImmediateContext->PSSetShaderResources(0, 1, &pDiffuseRV);
+		pd3dImmediateContext->DrawIndexed((UINT)pSubset->IndexCount, 0, (UINT)pSubset->VertexStart);
+	}
 }
 
 void CALLBACK OnD3D11DestroyDevice(void* pUserContext) {
@@ -233,13 +233,13 @@ void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserCo
 		switch (nChar) {
 		case VK_LEFT:
 			// Rotate camera in y-axis clockwise
-			g_RenderData.CameraToDirection = XMVector3Normalize( XMVector3Transform( g_RenderData.CameraToDirection, XMMatrixRotationY(-angleDisplacement) ) );
-			g_RenderData.LateralDirection = XMVector3Normalize( XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(-angleDisplacement)) );
+			g_RenderData.CameraToDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.CameraToDirection, XMMatrixRotationY(-angleDisplacement)));
+			g_RenderData.LateralDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(-angleDisplacement)));
 			break;
 		case VK_RIGHT:
 			// Rotate camera in y-axis counter-clockwise
-			g_RenderData.CameraToDirection = XMVector3Normalize( XMVector3Transform(g_RenderData.CameraToDirection, XMMatrixRotationY(angleDisplacement)) );
-			g_RenderData.LateralDirection = XMVector3Normalize( XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(angleDisplacement)) );
+			g_RenderData.CameraToDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.CameraToDirection, XMMatrixRotationY(angleDisplacement)));
+			g_RenderData.LateralDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(angleDisplacement)));
 			break;
 		default:
 			break;
@@ -282,10 +282,10 @@ int main() {
 		AtlCheck(DXUTCreateWindow(L"Trabajo"));
 		DXUTDeviceSettings deviceSettings;
 		DXUTApplyDefaultDeviceSettings(&deviceSettings);
-		#ifdef _DEBUG
-			deviceSettings.d3d11.CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
-			deviceSettings.d3d11.DriverType = D3D_DRIVER_TYPE_WARP;
-		#endif
+#ifdef _DEBUG
+		deviceSettings.d3d11.CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
+		deviceSettings.d3d11.DriverType = D3D_DRIVER_TYPE_WARP;
+#endif
 		DXUTSetCallbackD3D11DeviceCreated(HandleDeviceCreated);
 		DXUTSetCallbackD3D11FrameRender(HandleFrameRender);
 		DXUTSetCallbackD3D11DeviceDestroyed(OnD3D11DestroyDevice);
