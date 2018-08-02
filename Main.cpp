@@ -11,6 +11,12 @@
 
 using namespace DirectX;
 
+// Math helper function
+
+XMVECTOR RotateYAndNormalize(XMVECTOR aVector, float anAngle) {
+	return XMVector3Normalize(XMVector3Transform(aVector, XMMatrixRotationY(anAngle)));
+}
+
 inline HRESULT AtlCheck(HRESULT hr) {
 	if (SUCCEEDED(hr)) return hr;
 	AtlThrow(hr);
@@ -202,13 +208,13 @@ void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserCo
 		switch (nChar) {
 		case VK_LEFT:
 			// Rotate camera in y-axis clockwise
-			g_RenderData.CameraToDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.CameraToDirection, XMMatrixRotationY(-angleDisplacement)));
-			g_RenderData.LateralDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(-angleDisplacement)));
+			g_RenderData.CameraToDirection = RotateYAndNormalize(g_RenderData.CameraToDirection, -angleDisplacement);
+			g_RenderData.LateralDirection = RotateYAndNormalize(g_RenderData.LateralDirection, -angleDisplacement);
 			break;
 		case VK_RIGHT:
 			// Rotate camera in y-axis counter-clockwise
-			g_RenderData.CameraToDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.CameraToDirection, XMMatrixRotationY(angleDisplacement)));
-			g_RenderData.LateralDirection = XMVector3Normalize(XMVector3Transform(g_RenderData.LateralDirection, XMMatrixRotationY(angleDisplacement)));
+			g_RenderData.CameraToDirection = RotateYAndNormalize(g_RenderData.CameraToDirection, angleDisplacement);
+			g_RenderData.LateralDirection = RotateYAndNormalize(g_RenderData.LateralDirection, angleDisplacement);
 			break;
 		default:
 			break;
