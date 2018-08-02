@@ -6,7 +6,7 @@
 - Visual Studio C+++ tools
 
 ### Stuff to look into
-- [Lights[(https://takinginitiative.wordpress.com/2010/08/30/directx-10-tutorial-8-lighting-theory-and-hlsl/)
+- [Lights](https://takinginitiative.wordpress.com/2010/08/30/directx-10-tutorial-8-lighting-theory-and-hlsl/)
 
 ### Somewhat useful links:
 - [Helped me with IA Layout Assingment arguments error](https://www.gamedev.net/forums/topic/636149-createinputlayout-throws-e_invalidarg/)
