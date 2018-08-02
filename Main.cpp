@@ -26,11 +26,8 @@ struct ShaderTransforms {
 	XMMATRIX World;
 	XMMATRIX View;
 	XMMATRIX Projection;
-};
-
-struct InfoVertice {
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
+	XMFLOAT3 diffuseLightPosition;
+	XMFLOAT4 diffuseLightColor;
 };
 
 class RenderData {
@@ -44,8 +41,6 @@ public:
 	CComPtr<ID3D11InputLayout> InputLayout;
 	CComPtr<ID3D11VertexShader> BasicVS;
 	CComPtr<ID3D11PixelShader> BasicPS;
-	std::vector<InfoVertice> figura;
-	std::vector<WORD> indices;
 	ShaderTransforms transforms;
 	CDXUTSDKMesh sampleMesh;
 	float RotationY = 0.0f;
@@ -61,8 +56,6 @@ public:
 		InputLayout = nullptr;
 		BasicVS = nullptr;
 		BasicPS = nullptr;
-		figura.clear();
-		indices.clear();
 		sampleMesh.Destroy();
 	}
 };
@@ -74,6 +67,10 @@ HRESULT RenderData::LoadSceneAssets() {
 	this->CameraToDirection = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 	// Lateral direction. Used for camera X Axis displacement, and keep track of the rotated X axis
 	this->LateralDirection = XMVector3Normalize(XMVector3Transform(this->CameraToDirection, XMMatrixRotationY(XM_PI * .5)));
+
+	// Map sample diffuse light
+	this->transforms.diffuseLightPosition = XMFLOAT3(0.f,2.f,-4.f);
+	this->transforms.diffuseLightColor = XMFLOAT4(0.2f,0.2f,0.2f,1.f);
 
 	return S_OK;
 }
