@@ -141,7 +141,7 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 	RenderData *pRender = &g_RenderData;
 	ID3D11RenderTargetView *rtv = DXUTGetD3D11RenderTargetView();
 
-	pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::Coral);
+	pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::LightBlue);
 
 	RECT r = DXUTGetWindowClientRect();
 	pRender->transforms.World = XMMatrixIdentity();
