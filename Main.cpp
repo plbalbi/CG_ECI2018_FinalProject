@@ -136,22 +136,6 @@ HRESULT CALLBACK HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, _In_ const D
 	V_RETURN(pRender->LoadSceneAssets());
 	V_RETURN(pRender->CopySceneAssetsToGPU(pd3dDevice));
 
-	D3D11_TEXTURE2D_DESC descDepth;
-
-	descDepth.Width = pBackBufferSurfaceDesc->Width;
-	descDepth.Height = pBackBufferSurfaceDesc->Height;
-	descDepth.MipLevels = 1;
-	descDepth.ArraySize = 1;
-	descDepth.Format = deviceSettings.d3d11.AutoDepthStencilFormat;
-	descDepth.SampleDesc.Count = 1;
-	descDepth.SampleDesc.Quality = 0;
-	descDepth.Usage = D3D11_USAGE_DEFAULT;
-	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	descDepth.CPUAccessFlags = 0;
-	descDepth.MiscFlags = 0;
-
-	V_RETURN( pd3dDevice->CreateTexture2D(&descDepth, nullptr, &pDepthStencil) );
-
 	return hr;
 }
 
@@ -163,32 +147,11 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 
 	pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::LightBlue);
 
-	// Depthbuffering setup
-	D3D11_DEPTH_STENCIL_DESC dsDesc;
+	// Clear the depth stencil
 
-	// Depth test parameters
-	dsDesc.DepthEnable = true;
-	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	auto pDSV = DXUTGetD3D11DepthStencilView();
+	pd3dImmediateContext->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH, 1.0, 0);
 
-	// Stencil test parameters
-	dsDesc.StencilEnable = false;
-
-	// Create depth stencil state
-	ID3D11DepthStencilState * pDSState;
-	pd3dDevice->CreateDepthStencilState(&dsDesc, &pDSState);
-	pd3dImmediateContext->OMSetDepthStencilState(pDSState, 1);
-
-	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
-	descDSV.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	descDSV.Texture2D.MipSlice = 0;
-
-	// Create the depth stencil view
-	ID3D11DepthStencilView* pDSV;
-	hr = pd3dDevice->CreateDepthStencilView(pDepthStencil, // Depth stencil texture
-		&descDSV, // Depth stencil desc
-		&pDSV);  // [out] Depth stencil view
 
 
 	RECT r = DXUTGetWindowClientRect();
