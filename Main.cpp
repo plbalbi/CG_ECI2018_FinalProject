@@ -93,7 +93,7 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 	UINT meshIALayoutCount = ARRAYSIZE(meshIALayout);
 
 	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#ifdef _DEBUG
+	#ifdef _DEBUG
 	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
 	// Setting this flag improves the shader debugging experience, but still allows 
 	// the shaders to be optimized and to run exactly the way they will run in 
@@ -102,7 +102,7 @@ HRESULT RenderData::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 
 	// Disable optimizations to further improve shader debugging
 	dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
-#endif
+	#endif
 
 	// Compile the pixel shader
 	ID3DBlob* pPixelShaderBlob = nullptr;
@@ -148,11 +148,8 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 	pd3dImmediateContext->ClearRenderTargetView(rtv, DirectX::Colors::LightBlue);
 
 	// Clear the depth stencil
-
 	auto pDSV = DXUTGetD3D11DepthStencilView();
 	pd3dImmediateContext->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH, 1.0, 0);
-
-
 
 	RECT r = DXUTGetWindowClientRect();
 	pRender->transforms.World = XMMatrixIdentity();
@@ -162,12 +159,11 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 	pRender->transforms.View = XMMatrixLookToLH(Eye, To, Up);
 	pRender->transforms.Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, r.right / (FLOAT)r.bottom, 0.01f, 100.0f);
 
-	// Las matrices en constant buffers vienen column-major, por convencion.
+	// By convention, matrixes are stored in a column-major manner
 	pRender->transforms.World = XMMatrixTranspose(pRender->transforms.World);
 	pRender->transforms.View = XMMatrixTranspose(pRender->transforms.View);
 	pRender->transforms.Projection = XMMatrixTranspose(pRender->transforms.Projection);
 	pd3dImmediateContext->UpdateSubresource(pRender->CBuffer, 0, nullptr, &pRender->transforms, 0, 0);
-
 
 	UINT Strides[1];
 	UINT Offsets[1];
@@ -202,12 +198,6 @@ void CALLBACK HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID3D11Device
 		pd3dImmediateContext->PSSetShaderResources(0, 1, &pDiffuseRV);
 		pd3dImmediateContext->DrawIndexed((UINT)pSubset->IndexCount, 0, (UINT)pSubset->VertexStart);
 	}
-}
-
-void CALLBACK OnD3D11DestroyDevice(void* pUserContext) {
-	DXUTGetGlobalResourceCache().OnDestroyDevice();
-
-	g_RenderData.sampleMesh.Destroy();
 }
 
 //--------------------------------------------------------------------------------------
@@ -259,6 +249,14 @@ LRESULT CALLBACK MsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 	}
 
 	return 0;
+}
+
+// Handler called on d3d device destruction. Should release resources
+
+void CALLBACK OnD3D11DestroyDevice(void* pUserContext) {
+	DXUTGetGlobalResourceCache().OnDestroyDevice();
+
+	g_RenderData.sampleMesh.Destroy();
 }
 
 int main() {
