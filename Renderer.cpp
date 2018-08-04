@@ -46,7 +46,8 @@ HRESULT Renderer::Render() {
 	return S_OK;
 }
 
-HRESULT CALLBACK Renderer::HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, _In_ const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc, _In_opt_ void* pUserContext) {
+HRESULT CALLBACK Renderer::HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, 
+	_In_ const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc, _In_opt_ void* pUserContext) {
 
 	HRESULT hr = S_OK;
 	V_RETURN(LoadSceneAssets());
@@ -56,16 +57,15 @@ HRESULT CALLBACK Renderer::HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice, _I
 }
 
 HRESULT Renderer::LoadSceneAssets() {
+
 	this->camera = Camera(
 		XMVectorSet(0.0f, 0.0f, -5.f, 0.0f),
-		XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)
-		);
-	// Lateral direction. Used for camera X Axis displacement, and keep track of the rotated X axis
-	this->LateralDirection = XMVector3Normalize(XMVector3Transform(this->CameraToDirection, XMMatrixRotationY(XM_PI * .5)));
+		XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
+		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 
 	// Map sample diffuse light
-	this->transforms.diffuseLightPosition = XMFLOAT3(0.f, 2.f, -4.f);
-	this->transforms.diffuseLightColor = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.f);
+	/*this->transforms.diffuseLightPosition = XMFLOAT3(0.f,2.f,-4.f);
+	this->transforms.diffuseLightColor = XMFLOAT4(0.2f,0.2f,0.2f,1.f);*/
 
 	return S_OK;
 }
