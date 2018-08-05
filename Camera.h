@@ -2,6 +2,9 @@
 
 #include "stdafx.h"
 
+#ifndef CAMERA_H
+#define CAMERA_H
+
 using namespace DirectX;
 
 class Camera {
@@ -16,7 +19,7 @@ public:
 		setLateralDirectionFromTo(aToDirection);
 	}
 
-	
+	const XMVECTOR getLateralDirection() { return lateralDirection; }
 
 	XMVECTOR eye, to, up;
 
@@ -35,3 +38,4 @@ private:
 	void setLateralDirectionFromTo(const DirectX::XMVECTOR &aToDirection);
 };
 
+#endif // !

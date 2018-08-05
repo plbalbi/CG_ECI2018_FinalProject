@@ -3,7 +3,16 @@
 
 using namespace DirectX;
 
+const D3D11_INPUT_ELEMENT_DESC Renderer::MESH_IA_LAYOUT[] = {
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+};
+
+const UINT Renderer::MESH_IA_LAYOUT_SIZE = ARRAYSIZE(Renderer::MESH_IA_LAYOUT);
+
 Renderer::Renderer() {
+	Renderer::self = this;
 }
 
 
@@ -50,8 +59,8 @@ HRESULT CALLBACK Renderer::HandleDeviceCreated(_In_ ID3D11Device* pd3dDevice,
 	_In_ const DXGI_SURFACE_DESC* pBackBufferSurfaceDesc, _In_opt_ void* pUserContext) {
 
 	HRESULT hr = S_OK;
-	V_RETURN(LoadSceneAssets());
-	V_RETURN(CopySceneAssetsToGPU(pd3dDevice));
+	V_RETURN(self->LoadSceneAssets());
+	V_RETURN(self->CopySceneAssetsToGPU(pd3dDevice));
 
 	return hr;
 }
@@ -129,7 +138,7 @@ void CALLBACK Renderer::HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID
 	// VertexShader transforms data
 	VertexShaderTransforms transforms;
 	transforms.World = XMMatrixIdentity();
-	transforms.View = this->camera.cameraMatrix();
+	transforms.View = self->camera.cameraMatrix();
 	transforms.Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, r.right / (FLOAT)r.bottom, 0.01f, 100.0f);
 
 	// Matrix should be column-major by D3D convention
@@ -138,36 +147,36 @@ void CALLBACK Renderer::HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID
 	transforms.Projection = XMMatrixTranspose(transforms.Projection);
 
 	// Update vShader constant buffer
-	pd3dImmediateContext->UpdateSubresource(this->vsTransformsBuffer, 0, nullptr, &transforms, 0, 0);
+	pd3dImmediateContext->UpdateSubresource(self->vsTransformsBuffer, 0, nullptr, &transforms, 0, 0);
 
 	UINT Strides[1];
 	UINT Offsets[1];
 	ID3D11Buffer* pVB[1];
-	pVB[0] = this->sampleMesh.GetVB11(0, 0);
-	Strides[0] = (UINT)this->sampleMesh.GetVertexStride(0, 0);
+	pVB[0] = self->sampleMesh.GetVB11(0, 0);
+	Strides[0] = (UINT)self->sampleMesh.GetVertexStride(0, 0);
 	Offsets[0] = 0;
 	pd3dImmediateContext->IASetVertexBuffers(0, 1, pVB, Strides, Offsets);
-	pd3dImmediateContext->IASetIndexBuffer(this->sampleMesh.GetIB11(0), this->sampleMesh.GetIBFormat11(0), 0);
+	pd3dImmediateContext->IASetIndexBuffer(self->sampleMesh.GetIB11(0), self->sampleMesh.GetIBFormat11(0), 0);
 
 	D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
 	ID3D11RenderTargetView *rtvViews[1] = { rtv };
 
-	pd3dImmediateContext->IASetInputLayout(this->pInputLayout);
-	pd3dImmediateContext->VSSetShader(this->pVertexShader, nullptr, 0);
-	pd3dImmediateContext->VSSetConstantBuffers(0, 1, &this->vsTransformsBuffer.p);
+	pd3dImmediateContext->IASetInputLayout(self->pInputLayout);
+	pd3dImmediateContext->VSSetShader(self->pVertexShader, nullptr, 0);
+	pd3dImmediateContext->VSSetConstantBuffers(0, 1, &self->vsTransformsBuffer.p);
 	pd3dImmediateContext->RSSetViewports(1, viewports);
-	pd3dImmediateContext->PSSetShader(this->pPixelShader, nullptr, 0);
+	pd3dImmediateContext->PSSetShader(self->pPixelShader, nullptr, 0);
 	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, pDSV);
 
-	for (UINT subset = 0; subset < this->sampleMesh.GetNumSubsets(0); ++subset) {
-		auto pSubset = this->sampleMesh.GetSubset(0, subset);
-		auto PrimType = this->sampleMesh.GetPrimitiveType11((SDKMESH_PRIMITIVE_TYPE)pSubset->PrimitiveType);
+	for (UINT subset = 0; subset < self->sampleMesh.GetNumSubsets(0); ++subset) {
+		auto pSubset = self->sampleMesh.GetSubset(0, subset);
+		auto PrimType = self->sampleMesh.GetPrimitiveType11((SDKMESH_PRIMITIVE_TYPE)pSubset->PrimitiveType);
 
 		pd3dImmediateContext->IASetPrimitiveTopology(PrimType);
 
 		// Ignores most of the material information in them mesh to use
 		// only a simple shader
-		auto pDiffuseRV = this->sampleMesh.GetMaterial(pSubset->MaterialID)->pDiffuseRV11;
+		auto pDiffuseRV = self->sampleMesh.GetMaterial(pSubset->MaterialID)->pDiffuseRV11;
 
 		pd3dImmediateContext->PSSetShaderResources(0, 1, &pDiffuseRV);
 		pd3dImmediateContext->DrawIndexed((UINT)pSubset->IndexCount, 0, (UINT)pSubset->VertexStart);
@@ -183,13 +192,11 @@ void CALLBACK Renderer::OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, voi
 		switch (nChar) {
 		case VK_LEFT:
 			// Rotate camera in y-axis clockwise
-			g_RenderData.CameraToDirection = RotateYAndNormalize(g_RenderData.CameraToDirection, -angleDisplacement);
-			g_RenderData.LateralDirection = RotateYAndNormalize(g_RenderData.LateralDirection, -angleDisplacement);
+			self->camera.rotateCamera(-angleDisplacement);
 			break;
 		case VK_RIGHT:
 			// Rotate camera in y-axis counter-clockwise
-			g_RenderData.CameraToDirection = RotateYAndNormalize(g_RenderData.CameraToDirection, angleDisplacement);
-			g_RenderData.LateralDirection = RotateYAndNormalize(g_RenderData.LateralDirection, angleDisplacement);
+			self->camera.rotateCamera(angleDisplacement);
 			break;
 		default:
 			break;
@@ -200,28 +207,28 @@ void CALLBACK Renderer::OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, voi
 //--------------------------------------------------------------------------------------
 // Handle messages to the application
 //--------------------------------------------------------------------------------------
+// TODO: Change translate method in Camera
 LRESULT CALLBACK Renderer::MsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 	bool* pbNoFurtherProcessing, void* pUserContext) {
 	float keyDeltaMove = .1f;
 	if (uMsg == WM_CHAR) {
 		switch (wParam) {
 		case 'w':
-			g_RenderData.Eye += g_RenderData.CameraToDirection * keyDeltaMove;
+			self->camera.translateCamera(self->camera.to * keyDeltaMove);
 			break;
 		case 's':
-			g_RenderData.Eye += g_RenderData.CameraToDirection * -keyDeltaMove;
+			self->camera.translateCamera(self->camera.to * -keyDeltaMove);
 			break;
 		case 'a':
-			g_RenderData.Eye += g_RenderData.LateralDirection * -keyDeltaMove;
+			self->camera.translateCamera(self->camera.getLateralDirection() * -keyDeltaMove);
 			break;
 		case 'd':
-			g_RenderData.Eye += g_RenderData.LateralDirection * keyDeltaMove;
+			self->camera.translateCamera(self->camera.getLateralDirection() * keyDeltaMove);
 			break;
 		default:
 			break;
 		}
 	}
-
 	return 0;
 }
 
@@ -230,7 +237,7 @@ LRESULT CALLBACK Renderer::MsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 void CALLBACK Renderer::OnD3D11DestroyDevice(void* pUserContext) {
 	DXUTGetGlobalResourceCache().OnDestroyDevice();
 
-	g_RenderData.sampleMesh.Destroy();
+	self->sampleMesh.Destroy();
 }
 
 

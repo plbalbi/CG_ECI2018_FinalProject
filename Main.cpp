@@ -2,16 +2,15 @@
 //
 
 #include "Renderer.h"
-#include <iostream>
 
 #define _DEBUG
 
 int main() {
 	
-	Renderer engine = Renderer();
+	Renderer* engine = new Renderer();
 
-	engine.Initialize();
-	engine.Render();
+	//engine->Initialize();
+	engine->Render();
 
 	return 0;
 }

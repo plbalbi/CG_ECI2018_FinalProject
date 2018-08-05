@@ -3,31 +3,32 @@
 #include "stdafx.h"
 #include "Camera.h"
 
+#ifndef RENDERER_H
+#define RENDERER_H
 
 class Renderer {
 public:
 	Renderer();
 	~Renderer();
 
-	
-
 	HRESULT Initialize();
 	HRESULT Render();
-
 
 private:
 	HRESULT AtlCheck(HRESULT hr);
 	DXUTDeviceSettings deviceSettings;
 
+	static Renderer* self;
+
 	// DXUT Callbacks definition
-	HRESULT HandleDeviceCreated(ID3D11Device * pd3dDevice, const DXGI_SURFACE_DESC * pBackBufferSurfaceDesc, 
+	static HRESULT HandleDeviceCreated(ID3D11Device * pd3dDevice, const DXGI_SURFACE_DESC * pBackBufferSurfaceDesc, 
 		void * pUserContext);
-	void HandleFrameRender(ID3D11Device * pd3dDevice, ID3D11DeviceContext * pd3dImmediateContext,
+	static void HandleFrameRender(ID3D11Device * pd3dDevice, ID3D11DeviceContext * pd3dImmediateContext,
 		double fTime, float fElapsedTime, void * pUserContext);
-	void OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void * pUserContext);
-	LRESULT MsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, 
+	static void OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void * pUserContext);
+	static LRESULT MsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, 
 		bool * pbNoFurtherProcessing, void * pUserContext);
-	void OnD3D11DestroyDevice(void * pUserContext);
+	static void OnD3D11DestroyDevice(void * pUserContext);
 
 	// D3D needed collaborators
 	CComPtr<ID3D11InputLayout> pInputLayout;
@@ -46,18 +47,16 @@ private:
 	CComPtr<ID3D11Buffer> vsTransformsBuffer;
 
 	// Buffer objects containers
-	struct ShaderTransforms {
+	struct VertexShaderTransforms {
 		XMMATRIX World;
 		XMMATRIX View;
 		XMMATRIX Projection;
 	};
 
 	// IA layout descriptors
-	static const D3D11_INPUT_ELEMENT_DESC MESH_IA_LAYOUT[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	UINT MESH_IA_LAYOUT_SIZE= ARRAYSIZE(Renderer::MESH_IA_LAYOUT);
+	static const D3D11_INPUT_ELEMENT_DESC MESH_IA_LAYOUT[];
+	static const UINT MESH_IA_LAYOUT_SIZE;
 
 };
+
+#endif

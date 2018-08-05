@@ -1,6 +1,4 @@
-#include "stdafx.h"
 #include "Camera.h"
-
 
 XMMATRIX Camera::cameraMatrix() {
 	return XMMatrixLookToLH(
@@ -25,7 +23,6 @@ void Camera::setLateralDirectionFromTo(const DirectX::XMVECTOR &aToDirection) {
 
 Camera::Camera() {
 }
-
 
 Camera::~Camera() {
 }
