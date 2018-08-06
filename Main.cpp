@@ -9,6 +9,8 @@ int main() {
 	
 	Renderer* engine = new Renderer();
 
+	Renderer::self = engine;
+
 	//engine->Initialize();
 	engine->Render();
 

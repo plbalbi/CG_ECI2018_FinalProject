@@ -8,17 +8,18 @@
 
 class Renderer {
 public:
-	Renderer();
+	Renderer() {};
 	~Renderer();
 
 	HRESULT Initialize();
 	HRESULT Render();
 
+	static Renderer* self;
+
 private:
 	HRESULT AtlCheck(HRESULT hr);
 	DXUTDeviceSettings deviceSettings;
 
-	static Renderer* self;
 
 	// DXUT Callbacks definition
 	static HRESULT HandleDeviceCreated(ID3D11Device * pd3dDevice, const DXGI_SURFACE_DESC * pBackBufferSurfaceDesc, 

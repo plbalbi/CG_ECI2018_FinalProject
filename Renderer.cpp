@@ -11,10 +11,7 @@ const D3D11_INPUT_ELEMENT_DESC Renderer::MESH_IA_LAYOUT[] = {
 
 const UINT Renderer::MESH_IA_LAYOUT_SIZE = ARRAYSIZE(Renderer::MESH_IA_LAYOUT);
 
-Renderer::Renderer() {
-	Renderer::self = this;
-}
-
+Renderer* Renderer::self = nullptr;
 
 Renderer::~Renderer() {
 	// TODO: Reset and release all resources
@@ -236,7 +233,6 @@ LRESULT CALLBACK Renderer::MsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 void CALLBACK Renderer::OnD3D11DestroyDevice(void* pUserContext) {
 	DXUTGetGlobalResourceCache().OnDestroyDevice();
-
 	self->sampleMesh.Destroy();
 }
 
