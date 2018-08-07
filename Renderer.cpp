@@ -119,7 +119,13 @@ HRESULT Renderer::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 	V_RETURN(pd3dDevice->CreatePixelShader(pPixelShaderBlob->GetBufferPointer(), pPixelShaderBlob->GetBufferSize(), nullptr, &this->pPixelShader));
 
 	// Change this, have one mesh only
-	V_RETURN(this->sampleMesh.Create(pd3dDevice, L"models\\abstract.sdkmesh"));
+	CDXUTSDKMesh aMesh = CDXUTSDKMesh();
+	this->meshes.push_back(aMesh);
+	V_RETURN(this->meshes.back().Create(pd3dDevice, L"models\\abstract.sdkmesh"));
+
+	aMesh = CDXUTSDKMesh();
+	this->meshes.push_back(aMesh);
+	V_RETURN(this->meshes.back().Create(pd3dDevice, L"models\\cube.sdkmesh"));
 
 	return hr;
 }
@@ -157,38 +163,44 @@ void CALLBACK Renderer::HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID
 
 	pd3dImmediateContext->UpdateSubresource(self->psSDLBuffer, 0, nullptr, &sampleDiffuseLight, 0, 0);
 
+	D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
+	pd3dImmediateContext->RSSetViewports(1, viewports);
+	ID3D11RenderTargetView *rtvViews[1] = { rtv };
+	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, pDSV);
+
+	// Load constant buffers contents into GPU memory
+	ID3D11Buffer * bufferList[] = { self->vsTransformsBuffer.p, self->psSDLBuffer.p };
+	pd3dImmediateContext->VSSetConstantBuffers(0, 2, bufferList);
+
+
+	// Load IA layout, vertex and pixel shaders
+	pd3dImmediateContext->IASetInputLayout(self->pInputLayout);
+	pd3dImmediateContext->VSSetShader(self->pVertexShader, nullptr, 0);
+	pd3dImmediateContext->PSSetShader(self->pPixelShader, nullptr, 0);
+
+	for (CDXUTSDKMesh& mesh : self->meshes) {
+		loadMeshIntoVBuffer(pd3dImmediateContext, &mesh);
+	}
+	
+}
+
+void Renderer::loadMeshIntoVBuffer(ID3D11DeviceContext * pd3dImmediateContext, CDXUTSDKMesh* pAMeshToDraw) {
+	// Mesh data loading into vertex buffer
 	UINT Strides[1];
 	UINT Offsets[1];
 	ID3D11Buffer* pVB[1];
-	pVB[0] = self->sampleMesh.GetVB11(0, 0);
-	Strides[0] = (UINT)self->sampleMesh.GetVertexStride(0, 0);
+	pVB[0] = pAMeshToDraw->GetVB11(0, 0);
+	Strides[0] = (UINT)pAMeshToDraw->GetVertexStride(0, 0);
 	Offsets[0] = 0;
 	pd3dImmediateContext->IASetVertexBuffers(0, 1, pVB, Strides, Offsets);
-	pd3dImmediateContext->IASetIndexBuffer(self->sampleMesh.GetIB11(0), self->sampleMesh.GetIBFormat11(0), 0);
+	pd3dImmediateContext->IASetIndexBuffer(pAMeshToDraw->GetIB11(0), pAMeshToDraw->GetIBFormat11(0), 0);
 
-	D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
-	ID3D11RenderTargetView *rtvViews[1] = { rtv };
-
-	ID3D11Buffer * bufferList[] = { self->vsTransformsBuffer.p, self->psSDLBuffer.p };
-
-	pd3dImmediateContext->IASetInputLayout(self->pInputLayout);
-	pd3dImmediateContext->VSSetShader(self->pVertexShader, nullptr, 0);
-	pd3dImmediateContext->VSSetConstantBuffers(0, 2, bufferList);
-	pd3dImmediateContext->RSSetViewports(1, viewports);
-	pd3dImmediateContext->PSSetShader(self->pPixelShader, nullptr, 0);
-	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, pDSV);
-
-	for (UINT subset = 0; subset < self->sampleMesh.GetNumSubsets(0); ++subset) {
-		auto pSubset = self->sampleMesh.GetSubset(0, subset);
-		auto PrimType = self->sampleMesh.GetPrimitiveType11((SDKMESH_PRIMITIVE_TYPE)pSubset->PrimitiveType);
+	for (UINT subset = 0; subset < pAMeshToDraw->GetNumSubsets(0); ++subset) {
+		auto pSubset = pAMeshToDraw->GetSubset(0, subset);
+		auto PrimType = pAMeshToDraw->GetPrimitiveType11((SDKMESH_PRIMITIVE_TYPE)pSubset->PrimitiveType);
 
 		pd3dImmediateContext->IASetPrimitiveTopology(PrimType);
 
-		// Ignores most of the material information in them mesh to use
-		// only a simple shader
-		auto pDiffuseRV = self->sampleMesh.GetMaterial(pSubset->MaterialID)->pDiffuseRV11;
-
-		pd3dImmediateContext->PSSetShaderResources(0, 1, &pDiffuseRV);
 		pd3dImmediateContext->DrawIndexed((UINT)pSubset->IndexCount, 0, (UINT)pSubset->VertexStart);
 	}
 }

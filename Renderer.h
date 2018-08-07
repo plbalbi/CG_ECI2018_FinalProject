@@ -38,6 +38,8 @@ private:
 
 	// TODO: Change this, temporalily only adding one mesh
 	CDXUTSDKMesh sampleMesh;
+	std::vector< CDXUTSDKMesh > meshes;
+	static void loadMeshIntoVBuffer(ID3D11DeviceContext * pd3dImmediateContext, CDXUTSDKMesh * pAMeshToDraw);
 
 	// Create and load assets helper
 	HRESULT LoadSceneAssets();
