@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Renderer.h"
+#include <iostream>
 
 using namespace DirectX;
 
@@ -25,9 +26,10 @@ inline HRESULT Renderer::AtlCheck(HRESULT hr) {
 HRESULT Renderer::Render() {
 	try {
 		AtlCheck(DXUTInit());
-		AtlCheck(DXUTCreateWindow(L"Trabajo"));
+		AtlCheck(DXUTCreateWindow(L"ECI2018_CG_FinalProject"));
 		DXUTApplyDefaultDeviceSettings(&deviceSettings);
 #ifdef _DEBUG
+		std::cout << "DEBUG FLAG SET" << std::endl;
 		deviceSettings.d3d11.CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
 		deviceSettings.d3d11.DriverType = D3D_DRIVER_TYPE_WARP;
 #endif
@@ -46,7 +48,7 @@ HRESULT Renderer::Render() {
 
 	}
 	catch (const CAtlException &e) {
-		wprintf(L"failed with hr=0x%08x", (HRESULT)e);
+		wprintf(L"failed with hr=0x%08x\n", (HRESULT)e);
 	}
 
 	return S_OK;
@@ -83,6 +85,9 @@ HRESULT Renderer::CopySceneAssetsToGPU(_In_ ID3D11Device* pd3dDevice) {
 	// Create buffer to hold vertex shader transorms (view, world and projection matrixes)
 	CD3D11_BUFFER_DESC cbDesc(sizeof(Renderer::VertexShaderTransforms), D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DEFAULT);
 	V_RETURN(pd3dDevice->CreateBuffer(&cbDesc, nullptr, &this->vsTransformsBuffer));
+	// Create buffer to hold simple diffuse lights
+	cbDesc = CD3D11_BUFFER_DESC(sizeof(Renderer::SimpleDiffuseLight), D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DEFAULT);
+	V_RETURN(pd3dDevice->CreateBuffer(&cbDesc, nullptr, &this->psSDLBuffer));
 
 	// Define the input layout
 	
@@ -146,6 +151,12 @@ void CALLBACK Renderer::HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID
 	// Update vShader constant buffer
 	pd3dImmediateContext->UpdateSubresource(self->vsTransformsBuffer, 0, nullptr, &transforms, 0, 0);
 
+	Renderer::SimpleDiffuseLight sampleDiffuseLight;
+	sampleDiffuseLight.position = XMFLOAT3(0.0f, 2.0f, -5.0f);
+	sampleDiffuseLight.color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	pd3dImmediateContext->UpdateSubresource(self->psSDLBuffer, 0, nullptr, &sampleDiffuseLight, 0, 0);
+
 	UINT Strides[1];
 	UINT Offsets[1];
 	ID3D11Buffer* pVB[1];
@@ -158,9 +169,11 @@ void CALLBACK Renderer::HandleFrameRender(_In_ ID3D11Device* pd3dDevice, _In_ ID
 	D3D11_VIEWPORT viewports[1] = { 0, 0, (FLOAT)r.right, (FLOAT)r.bottom, 0.0f, 1.0f };
 	ID3D11RenderTargetView *rtvViews[1] = { rtv };
 
+	ID3D11Buffer * bufferList[] = { self->vsTransformsBuffer.p, self->psSDLBuffer.p };
+
 	pd3dImmediateContext->IASetInputLayout(self->pInputLayout);
 	pd3dImmediateContext->VSSetShader(self->pVertexShader, nullptr, 0);
-	pd3dImmediateContext->VSSetConstantBuffers(0, 1, &self->vsTransformsBuffer.p);
+	pd3dImmediateContext->VSSetConstantBuffers(0, 2, bufferList);
 	pd3dImmediateContext->RSSetViewports(1, viewports);
 	pd3dImmediateContext->PSSetShader(self->pPixelShader, nullptr, 0);
 	pd3dImmediateContext->OMSetRenderTargets(1, rtvViews, pDSV);

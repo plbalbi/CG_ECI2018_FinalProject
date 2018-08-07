@@ -46,12 +46,20 @@ private:
 	// Scence collaborators
 	Camera camera;
 	CComPtr<ID3D11Buffer> vsTransformsBuffer;
+	// SDL stands for simple diffuse light
+	CComPtr<ID3D11Buffer> psSDLBuffer;
 
 	// Buffer objects containers
 	struct VertexShaderTransforms {
 		XMMATRIX World;
 		XMMATRIX View;
 		XMMATRIX Projection;
+	};
+
+	struct SimpleDiffuseLight {
+		XMFLOAT3 position;
+		XMFLOAT4 color;
+		float __padding;
 	};
 
 	// IA layout descriptors

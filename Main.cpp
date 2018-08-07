@@ -3,8 +3,6 @@
 
 #include "Renderer.h"
 
-#define _DEBUG
-
 int main() {
 	
 	Renderer* engine = new Renderer();
